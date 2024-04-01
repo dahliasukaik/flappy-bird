@@ -1,167 +1,120 @@
 import pygame as pg 
-from sys import exit
-from random import randint, choice
-'''
-class Player(pg.sprite.Sprite):
+
+import sys
+from pipe import Pipe
+from bird import Bird
+from button import Button
+
+
+
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 500
+
+
+
+class Game:
     def __init__(self):
-        super().__init__()
-        bird_image1 = pg.image.load('images/bird_up.png').convert_alpha()
-        bird_image2 = pg.image.load('images/bird_down.png').convert_alpha()
-        self.bird_fly = [bird_image1,bird_image2]
-        self.bird_index = 0
+        pg.init()
+        size = SCREEN_WIDTH,  SCREEN_HEIGHT
+        self.screen = pg.display.set_mode(size=size)
+        pg.display.set_caption('Flappy_Bird')
+        self.clock = pg.time.Clock()
+        self.font_t = pg.font.Font( None, 50)
+        self.sky_image = pg.image.load('images/sky.JPG').convert_alpha()
+        self.sky_image = pg.transform.scale(self.sky_image , (600,500))
+        self.ground_image = pg.image.load('images/ground.png').convert_alpha()
+        self.ground_image = pg.transform.scale(self.ground_image , (600,40))
+        self.g_rect = self.ground_image.get_rect(topleft = (0, 460))
+        self.bird_active = False
+        self.pipes = Pipe(game=self)
+        self.bird1 = Bird(game=self)
+        
+        self.game_active = False
+        self.game_over()
+      #  self.play_button = Button(game=self, text='Play Game', text_color =(111,196,169), position=(300, 400))
 
-        self.image = self.bird_fly[self.bird_index]
-		self.rect = self.image.get_rect(midbottom = (80,100))
-        self.gravity = 0
-
-'''
-
-
-pg.init()
-
-screen_width = 600
-screen_height = 500
-screen = pg.display.set_mode((screen_width,screen_height))
-pg.display.set_caption('Flappy_Bird')
-clock = pg.time.Clock()
-game_active = True
-
-
-sky_image = pg.image.load('images/sky.JPG').convert_alpha()
-sky_image = pg.transform.scale(sky_image , (600,500))
-ground_image = pg.image.load('images/ground.png').convert_alpha()
-ground_image = pg.transform.scale(ground_image , (600,40))
-bird_image1 = pg.image.load('images/bird_up.png').convert_alpha()
-#bird_image2 = pg.image.load('images/bird_down.png').convert_alpha()
-bird_image = pg.transform.scale(bird_image1 , (20,20))
-bird_rect = bird_image.get_rect(center = (50,230))
-
-
-
-pipe_top = pg.image.load('images/pipe_up.png').convert_alpha()
-
-pipe_top1 = pg.transform.scale(pipe_top, (70,200))
-pipe1_rect1 = pipe_top1.get_rect(topleft = (150,0))
-
-pipe_top2 = pg.transform.scale(pipe_top, (70,250))
-pipe1_rect2= pipe_top2.get_rect(topleft = (300,0))
-
-pipe_top3 = pg.transform.scale(pipe_top, (70,150))
-pipe1_rect3 = pipe_top3.get_rect(topleft = (450,0))
-
-
-pipe_top4 = pg.transform.scale(pipe_top, (70,230))
-pipe1_rect4 = pipe_top4.get_rect(topleft = (600,0))
-
-
-pipe_bottom= pg.image.load('images/pipe_down.png').convert_alpha()
-
-pipe_bottom1 = pg.transform.scale(pipe_bottom, (70,200))
-pipe2_rect1 = pipe_bottom1.get_rect(bottomleft = (150,460))
-
-pipe_bottom2 = pg.transform.scale(pipe_bottom, (70,150))
-pipe2_rect2 = pipe_bottom2.get_rect(bottomleft= (300,460))
-
-pipe_bottom3 = pg.transform.scale(pipe_bottom, (70, 250))
-pipe2_rect3 = pipe_bottom3.get_rect(bottomleft = (450,460))
-
-pipe_bottom4 = pg.transform.scale(pipe_bottom, (70,170))
-pipe2_rect4 = pipe_bottom4.get_rect(bottomleft = (600,460))
-
-
-bird_gravity = 0
-
-
-
-
-
-flag = False
-		
-while True:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-             pg.quit()
-             exit()
-        if game_active:
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and bird_rect.top >= 10:
-                    bird_gravity -= 5
-                    
-            if event.type == pg.KEYUP:
-                flag = True
-        else:
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                game_active = True
-                bird_rect.x = 50
- 
-                
-      
-    if game_active:
-        # if event.type == pg.KEYDOWN:
+    def handle_events(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT: 
+                pg.quit()
+                sys.exit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_SPACE:
+                    self.bird1.jump()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                mouse_pos_x, mouse_pos_y = pg.mouse.get_pos()
+                if self.play_rect.collidepoint(mouse_pos_x, mouse_pos_y):
+                    self.bird_active = True
+                    self.activate()
+                if self.play_rect2.collidepoint(mouse_pos_x, mouse_pos_y):
+                    self.activate()
             
-        screen.blit(sky_image,(0,0))
-        screen.blit(ground_image,(0,460))
-        screen.blit(bird_image,bird_rect)
-        if (flag):
-            bird_gravity += .5
-            bird_rect.y += bird_gravity
-        
-        
+    def collisions(self):
+        if (self.bird1.rect.colliderect(self.g_rect)):
+            self.game_active = False
+            self.game_over()
 
-        
-        pipe1_rect1.left -= 1
-        pipe1_rect2.left -= 1
-        pipe1_rect3.left -= 1
-        pipe1_rect4.left -= 1
 
-        if(pipe1_rect1.right < 0): 
-            pipe1_rect1.left = 550
-        if(pipe1_rect2.right < 0): 
-            pipe1_rect2.left = 550
-        if(pipe1_rect3.right < 0): 
-            pipe1_rect3.left = 550
-        if(pipe1_rect4.right < 0): 
-            pipe1_rect4.left = 550
 
-        screen.blit(pipe_top1,pipe1_rect1)
-        screen.blit(pipe_top2,pipe1_rect2)
-        screen.blit(pipe_top3,pipe1_rect3)
-        screen.blit(pipe_top4,pipe1_rect4)
+    def launch_screen(self):
+        title = self.font_t.render('Flappy Bird', False, (111,196,169))
+        title_rect = title.get_rect(midtop = (300,100))
+        self.screen.blit(title,title_rect)
+        self.play_button = self.font_t.render('Play', False, (111,196,169))
+        self.play_rect = self.play_button.get_rect(midtop = (300,400))
+        self.screen.blit(self.play_button,self.play_rect)
+        pg.display.flip()
 
-        pipe2_rect1.left -= 1
-        pipe2_rect2.left -= 1
-        pipe2_rect3.left -= 1
-        pipe2_rect4.left -= 1
+    def game_over(self):
+        self.screen.fill('Black')
+        game_over = self.font_t.render('Game Over', False, (111,196,169))
+        over_rect = game_over.get_rect(midtop = (300,200))
+        self.screen.blit(game_over,over_rect)
+        self.play_button2 = self.font_t.render('Play again?', False, (111,196,169))
+        self.play_rect2 = self.play_button2.get_rect(midtop = (300,400))
+        self.screen.blit(self.play_button2,self.play_rect2)
+        self.handle_events()
+        pg.display.flip()
 
-        
 
-        
 
-        
+    def activate(self): 
+        self.game_active = True
 
-        if(pipe2_rect1.right < 0): 
-            pipe2_rect1.left = 550
-        if(pipe2_rect2.right < 0): 
-            pipe2_rect2.left = 550
-        if(pipe2_rect3.right < 0): 
-            pipe2_rect3.left = 550
-        if(pipe2_rect4.right < 0): 
-            pipe2_rect4.left = 550
-        screen.blit(pipe_bottom1,pipe2_rect1)
-        screen.blit(pipe_bottom2,pipe2_rect2)
-        screen.blit(pipe_bottom3,pipe2_rect3)
-        screen.blit(pipe_bottom4,pipe2_rect4)
+    def play(self):
 
-        if ( (bird_rect.bottom >= 460) or bird_rect.colliderect(pipe1_rect1) or bird_rect.colliderect(pipe1_rect1)): 
-            game_active = False
-
-    else:
-        screen.fill('yellow')
+        self.launch_screen()
+        self.screen.fill((0,0,0))
+        while True:
+            self.handle_events()
+            if self.game_active:  
+                self.collisions()
+                self.screen.blit(self.sky_image,(0,0))
+                self.screen.blit(self.ground_image, self.g_rect)
+                self.pipes.draw()
+                self.bird1.update()
+                if self.bird1.is_jumping: self.pipes.update()
+            elif self.bird_active:
+                self.bird1.reset()
+                self.pipes.reset()
+                self.game_over()
+  
+            else:
+                self.bird1.reset()
+                self.pipes.reset()
+                self.launch_screen()
 
     
+              # self.Scores_button.update() 
+            pg.display.update()
+            self.clock.tick(60)
+
+
   
 
+def main():
+    g = Game()
+    g.play()
 
-
-
-    pg.display.update()
-    clock.tick(60)
+if __name__ == '__main__':
+    main()
