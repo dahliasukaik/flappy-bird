@@ -1,16 +1,16 @@
 import pygame as pg 
 
 import sys
-from pipe import Pipe
 from bird import Bird
-from button import Button
+from pipe import PipePair
+
 
 
 
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 500
 
-
+POSITION_X = [100, 250, 400, 550]
 
 class Game:
     def __init__(self):
@@ -31,15 +31,12 @@ class Game:
         self.play_button2 = self.font_t.render('Play again?', False, (111,196,169))
         self.play_rect2 = self.play_button2.get_rect(midtop = (300,400))
         self.bird_active = False
-        self.pipes = Pipe(game=self)
         self.bird = pg.sprite.GroupSingle()
         self.bird.add(Bird())
+        self.pipes = [PipePair(x) for x in POSITION_X]
         self.game_active = False
-        self.clicked = False
         self.user_input = 0
         
-      #  self.play_button = Button(game=self, text='Play Game', text_color =(111,196,169), position=(300, 400))
-
     def handle_events(self):
         for event in pg.event.get():
             if event.type == pg.QUIT: 
@@ -54,12 +51,7 @@ class Game:
                 if self.play_rect2.collidepoint(mouse_pos_x, mouse_pos_y):
                     self.activate()
                
-    '''        
-    def collisions(self):
-        if (self.bird1.rect.colliderect(self.g_rect)):
-            self.game_active = False
-            self.game_over()
-    ''' 
+        
 
 
     def launch_screen(self):
@@ -83,6 +75,9 @@ class Game:
     def activate(self): 
         self.game_active = True
 
+
+        
+
     def play(self):
 
         self.launch_screen()
@@ -92,21 +87,36 @@ class Game:
         while True:       
             self.handle_events()
             user_input = pg.key.get_pressed()
-            if self.game_active:  
+            if self.game_active: 
                 self.screen.blit(self.sky_image,self.sky_rect)
                 self.screen.blit(self.ground_image, self.g_rect)
-                #self.collisions()
                 self.bird.draw(self.screen)
-                 
                 self.handle_events()
-                self.pipes.draw() 
+                for pipe_pair in self.pipes: 
+                    pipe_pair.draw(self.screen)
+                
                 if self.bird_active:
                     self.bird.update(user_input) 
-                    self.pipes.update()
+                    for pipe_pair in self.pipes:
+                        pipe_pair.update()
+                        pipe_pair.draw(self.screen)
+                
+              
+                    for pipe_pair in self.pipes:
+                        if pg.sprite.spritecollideany(self.bird.sprite, pipe_pair.pipes):
+                            self.hit_sound = pg.mixer.Sound("images/hit_sound.mp3")
+                            self.hit_sound.play()
+                            self.game_active = False
+                            break
+
             elif self.bird_active:
-                self.bird.reset()
-                self.pipes.reset()
-                self.game_over()
+                 self.game_over()
+                 self.bird_active = False
+                 self.pipes.clear()  # Remove all pipe pairs
+                 self.pipes = [PipePair(x) for x in POSITION_X]
+                 self.bird.sprite.reset()
+        
+                
   
     
               # self.Scores_button.update() 
