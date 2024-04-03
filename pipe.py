@@ -6,7 +6,7 @@ pg.init()
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 500
 PIPE_WIDTH = 70
-GAP_SIZE = 150 # Gap size between top and bottom pipes
+GAP_SIZE = 140 # Gap size between top and bottom pipes
 BOTTOM_PIPE_Y = 460  # Y position for the top edge of bottom pipes
 
 class TopPipe(pg.sprite.Sprite):
@@ -16,7 +16,7 @@ class TopPipe(pg.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x, 0))
     
     def update(self):
-        self.rect.x -= 1
+        self.rect.x -= 2
         if self.rect.right < 0:
             self.rect.left = 600
 
@@ -27,7 +27,7 @@ class BottomPipe(pg.sprite.Sprite):
         self.rect = self.image.get_rect(bottomleft =(x, BOTTOM_PIPE_Y))
     
     def update(self):
-        self.rect.x -= 1
+        self.rect.x -= 2
         if self.rect.right < 0:
             self.rect.left = 600
 
@@ -40,6 +40,7 @@ class PipePair:
         self.top_pipe = TopPipe(x, top_height)
         self.bottom_pipe = BottomPipe(x, bottom_height)
         self.pipes = pg.sprite.Group(self.top_pipe, self.bottom_pipe)
+        self.passed = False
     
     def update(self):
         self.pipes.update()
