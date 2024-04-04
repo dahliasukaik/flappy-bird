@@ -3,7 +3,7 @@ import pygame as pg
 import sys
 from bird import Bird
 from pipe import PipePair
-
+from enemy import Enemy
 
 
 
@@ -11,6 +11,9 @@ SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 500
 
 POSITION_X = [150, 300, 450, 600]
+
+
+
 
 class Game:
     def __init__(self):
@@ -30,6 +33,9 @@ class Game:
         self.ground_image = pg.image.load('images/ground.png').convert_alpha()
         self.ground_image = pg.transform.scale(self.ground_image , (600,40))
         self.hit_sound = pg.mixer.Sound("images/hit_sound.mp3")
+        self.over_sound = pg.mixer.Sound("images/over_sound.wav")
+        self.point_sound = pg.mixer.Sound("images/point_sound.mp3")
+        self.explosion_sound = pg.mixer.Sound("images/explosion_sound.mp3")
         self.bird_active = False
         self.bird = pg.sprite.GroupSingle()
         self.bird.add(Bird())
@@ -37,21 +43,29 @@ class Game:
         self.game_active = False
         self.user_input = 0
         self.score = 0
+        self.record = 0
+        self.deduction = 0
+        self.enemy_group = pg.sprite.Group()
+        self.bomb_timer = pg.USEREVENT + 1
+        pg.time.set_timer(self.bomb_timer,4000 )
 
 
     def launch_screen(self):
-        title = self.font.render('Flappy Bird', False, (100,196,20))
-        title_rect = title.get_rect(midtop = (300,100))
-        self.screen.blit(title,title_rect)
+        title_image = pg.image.load('images/title.png').convert_alpha()
+        title_image = pg.transform.scale(title_image , (300,80))
+        title_rect = self.start_.get_rect(topleft = (150,100))
+        self.screen.blit(title_image,title_rect)
         self.screen.blit(self.start_,self.start_rect)
-        pg.display.flip()
+       # pg.display.flip()
 
     def game_over(self):
-        game_over = self.font.render('Game Over', False, (100,196,20))
-        over_rect = game_over.get_rect(midtop = (300,200))
-        show_score = self.font.render(f'Score: {self.score}', True, (0, 0, 0))
+        self.over_sound.play()
+        over_image = pg.image.load('images/gameover.png').convert_alpha()
+        over_image = pg.transform.scale(over_image , (300,80))
+        over_rect = self.start_.get_rect(topleft = (150,200))
+        show_score = self.font.render(f'Score: {self.record}', True, (0, 0, 0))
         self.screen.blit(show_score, (230,300))
-        self.screen.blit(game_over,over_rect)
+        self.screen.blit(over_image,over_rect)
         self.screen.blit(self.restart_,self.restart_rect)
         self.handle_events()
         pg.display.flip()
@@ -63,12 +77,16 @@ class Game:
                 sys.exit()
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 self.bird_active = True
+            if event.type == self.bomb_timer and self.bird_active:
+                 self.enemy_group.add(Enemy())
             if event.type == pg.MOUSEBUTTONDOWN:
                 mouse_pos_x, mouse_pos_y = pg.mouse.get_pos()
                 if self.start_rect.collidepoint(mouse_pos_x, mouse_pos_y):
                     self.game_active = True
+                    self.reset_score()
                 elif self.restart_rect.collidepoint(mouse_pos_x, mouse_pos_y):
                     self.game_active = True
+                
 
 
     def update_score(self):
@@ -77,7 +95,9 @@ class Game:
                 pipe_pair.passed = True
             if pipe_pair.passed:
                 if self.bird.sprite.rect.left >  pipe_pair.top_pipe.rect.right:
+                    self.point_sound.play()
                     self.score += 1
+                    self.record +=1
                     pipe_pair.passed = False
 
     
@@ -85,14 +105,23 @@ class Game:
 
 
     def draw_score(self):
-        score_surface = self.font.render(f'{self.score}', True, (0, 0, 0))
-        self.screen.blit(score_surface, (20, 20))
+        score_surface = self.font.render(f'Score {self.score}', True, (225,225,225))
+        self.screen.blit(score_surface, (50, 470))
 
 
     def check_collison (self):
         if self.bird.sprite.rect.y == 434:
             self.hit_sound.play()
             self.game_active = False
+        if pg.sprite.spritecollideany(self.bird.sprite, self.enemy_group):
+            self.explosion_sound.play()
+            self.enemy_group.empty() 
+            self.deduction += 1
+            self.score -= self.deduction
+            self.record -= self.deduction
+            self.deduction = 0
+
+
 
         for pipe_pair in self.pipes:
             if pg.sprite.spritecollideany(self.bird.sprite, pipe_pair.pipes):
@@ -103,12 +132,15 @@ class Game:
 
     def reset_score(self):
         self.score = 0
+        self.record = 0
+        self.deduction = 0
         for pipe_pair in self.pipes:
             pipe_pair.passed = False
 
     def play(self):
         self.launch_screen()
-        while True:      
+        
+        while True:     
             self.handle_events()
             user_input = pg.key.get_pressed()
             pg.display.flip()
@@ -118,9 +150,10 @@ class Game:
                 self.screen.blit(self.sky_image,self.sky_rect)
                 self.screen.blit(self.ground_image, (0,460))
                 self.bird.draw(self.screen) 
+                self.draw_score()
                 for pipe_pair in self.pipes:
                     pipe_pair.draw(self.screen)
-                    self.draw_score()
+
                 #when the bird starts moving
                 if self.bird_active:
                     self.check_collison() 
@@ -128,15 +161,18 @@ class Game:
                     for pipe_pair in self.pipes:
                         pipe_pair.update()
                         pipe_pair.draw(self.screen)
+                    self.enemy_group.draw(self.screen)
+                    self.enemy_group.update()
                 self.update_score()
             #bird has already been active but not game is inactive
             elif self.bird_active:
-                 self.game_over()
-                 self.reset_score()
+                 self.game_over() 
                  self.bird_active = False
                  self.pipes.clear() 
+                 self.enemy_group.empty()
                  self.pipes = [PipePair(x) for x in POSITION_X]
                  self.bird.sprite.reset() 
+        
 
 
   

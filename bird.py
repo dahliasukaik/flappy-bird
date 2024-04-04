@@ -1,5 +1,5 @@
 import pygame as pg 
-import sys
+
 
 
 
@@ -33,12 +33,13 @@ class Bird(pg.sprite.Sprite):
 
     def reset(self):
         self.velocity = 0
-        self.rect.center = (30,230)
+        self.rect.center = (50,230)
         self.flap = False
 
     def update(self, user_input):
         self.flap_animation()
         self.velocity += 0.5
+        #adopted code logic for bird flap from online tutorial
         if self.velocity > 5:
             self.velocity = 5
         if self.rect.y < 435:
